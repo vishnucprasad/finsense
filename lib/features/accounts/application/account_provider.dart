@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/models/account_model.dart';
+import '../../dashboard/application/transaction_provider.dart';
 
 part 'account_provider.g.dart';
 
@@ -32,14 +33,22 @@ class AccountNotifier extends _$AccountNotifier {
     await _saveAccounts(newList);
   }
 
-  Future<void> updateBalance(String accountId, double amountDelta) async {
+  Future<void> updateBalance(String id, double delta) async {
     final currentList = state.valueOrNull ?? [];
     final newList = currentList.map((a) {
-      if (a.id == accountId) {
-        return a.copyWith(balance: a.balance + amountDelta);
+      if (a.id == id) {
+        return a.copyWith(balance: a.balance + delta);
       }
       return a;
     }).toList();
+    
+    state = AsyncValue.data(newList);
+    await _saveAccounts(newList);
+  }
+
+  Future<void> updateAccount(AccountModel updatedAccount) async {
+    final currentList = state.valueOrNull ?? [];
+    final newList = currentList.map((a) => a.id == updatedAccount.id ? updatedAccount : a).toList();
     state = AsyncValue.data(newList);
     await _saveAccounts(newList);
   }
@@ -49,5 +58,8 @@ class AccountNotifier extends _$AccountNotifier {
     final newList = currentList.where((a) => a.id != id).toList();
     state = AsyncValue.data(newList);
     await _saveAccounts(newList);
+    
+    // Purge corresponding transactions universally
+    await ref.read(transactionNotifierProvider.notifier).clearAccountTransactions(id);
   }
 }

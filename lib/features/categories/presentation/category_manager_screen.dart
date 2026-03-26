@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../application/category_provider.dart';
 import '../../dashboard/presentation/widgets/global_drawer.dart';
+import 'edit_category_sheet.dart';
 
 class CategoryManagerScreen extends ConsumerWidget {
   const CategoryManagerScreen({super.key});
@@ -28,11 +29,11 @@ class CategoryManagerScreen extends ConsumerWidget {
             children: [
               const Text('INCOME', style: TextStyle(color: AppTheme.emerald, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
               const SizedBox(height: 16),
-              ...incomes.map((c) => _buildCategoryTile(c, ref)),
+              ...incomes.map((c) => _buildCategoryTile(context, c, ref)),
               const SizedBox(height: 32),
               const Text('EXPENSE', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
               const SizedBox(height: 16),
-              ...expenses.map((c) => _buildCategoryTile(c, ref)),
+              ...expenses.map((c) => _buildCategoryTile(context, c, ref)),
             ],
           );
         },
@@ -42,7 +43,7 @@ class CategoryManagerScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryTile(category, WidgetRef ref) {
+  Widget _buildCategoryTile(BuildContext context, category, WidgetRef ref) {
     final color = Color(int.parse(category.colorHex, radix: 16));
     
     IconData getIconData(String name) {
@@ -66,9 +67,47 @@ class CategoryManagerScreen extends ConsumerWidget {
           child: Icon(getIconData(category.iconName), color: color),
         ),
         title: Text(category.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete, color: Colors.white54),
-          onPressed: () => ref.read(categoryNotifierProvider.notifier).deleteCategory(category.id),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, color: AppTheme.cyan),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => EditCategorySheet(category: category),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppTheme.deepNavy,
+                    title: const Text('Delete Category', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    content: const Text(
+                      'Are you sure you want to delete this category? Any transactions linked to it will be safely migrated to another category of the same type.',
+                      style: TextStyle(color: Colors.white70, height: 1.4),
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(categoryNotifierProvider.notifier).deleteCategory(category.id);
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

@@ -126,76 +126,116 @@ class AllTransactionsScreen extends ConsumerWidget {
                           final categories = categoriesAsync.valueOrNull ?? [];
                           final categoryName = categories.firstWhere((c) => c.id == t.categoryId, orElse: () => categories.first).name;
 
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.02),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white.withOpacity(0.05)),
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.white.withOpacity(0.1),
-                                child: Icon(t.type == 'Income' ? Icons.arrow_downward : Icons.arrow_upward, color: t.type == 'Income' ? AppTheme.emerald : Colors.redAccent, size: 20),
+                          return Dismissible(
+                            key: Key(t.id),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              alignment: Alignment.centerRight,
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent,
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                              title: Text(categoryName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                              subtitle: t.note.isNotEmpty ? Text(t.note, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)) : null,
-                              trailing: Text('₹${t.amount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                              onTap: () => context.push('/transaction-entry', extra: t),
-                              onLongPress: () {
-                                showModalBottomSheet(
-                                  context: context,
+                              child: const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            confirmDismiss: (direction) async {
+                              return await showDialog<bool>(
+                                context: context,
+                                builder: (dialogCtx) => AlertDialog(
                                   backgroundColor: AppTheme.deepNavy,
-                                  builder: (ctx) => SafeArea(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        ListTile(
-                                          leading: const Icon(Icons.edit, color: AppTheme.cyan),
-                                          title: const Text('Edit Transaction', style: TextStyle(color: Colors.white)),
-                                          onTap: () {
-                                            Navigator.pop(ctx);
-                                            context.push('/transaction-entry', extra: t);
-                                          },
-                                        ),
-                                        ListTile(
-                                          leading: const Icon(Icons.delete, color: Colors.redAccent),
-                                          title: const Text('Delete', style: TextStyle(color: Colors.white)),
-                                          onTap: () {
-                                            Navigator.pop(ctx);
-                                            showDialog(
-                                              context: context,
-                                              builder: (dialogCtx) => AlertDialog(
-                                                backgroundColor: AppTheme.deepNavy,
-                                                title: const Text('Confirm Deletion', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                                content: const Text(
-                                                  'Are you sure you want to permanently delete this transaction? This will instantly impact your Net Worth and AI Analysis parameters.', 
-                                                  style: TextStyle(color: Colors.white70, height: 1.4)
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () => Navigator.pop(dialogCtx),
-                                                    child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-                                                  ),
-                                                  TextButton(
-                                                    onPressed: () {
-                                                      ref.read(transactionNotifierProvider.notifier).deleteTransaction(t);
-                                                      Navigator.pop(dialogCtx);
-                                                    },
-                                                    child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
+                                  title: const Text('Confirm Deletion', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  content: const Text(
+                                    'Are you sure you want to permanently delete this transaction? This will instantly impact your Net Worth and AI Analysis parameters.', 
+                                    style: TextStyle(color: Colors.white70, height: 1.4)
                                   ),
-                                );
-                              },
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(dialogCtx, false),
+                                      child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(dialogCtx, true),
+                                      child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            onDismissed: (_) {
+                              ref.read(transactionNotifierProvider.notifier).deleteTransaction(t);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.02),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.white.withOpacity(0.1),
+                                  child: Icon(t.type == 'Income' ? Icons.arrow_downward : Icons.arrow_upward, color: t.type == 'Income' ? AppTheme.emerald : Colors.redAccent, size: 20),
+                                ),
+                                title: Text(categoryName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                subtitle: t.note.isNotEmpty ? Text(t.note, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)) : null,
+                                trailing: Text('₹${t.amount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                onTap: () => context.push('/transaction-entry', extra: t),
+                                onLongPress: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: AppTheme.deepNavy,
+                                    builder: (ctx) => SafeArea(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ListTile(
+                                            leading: const Icon(Icons.edit, color: AppTheme.cyan),
+                                            title: const Text('Edit Transaction', style: TextStyle(color: Colors.white)),
+                                            onTap: () {
+                                              Navigator.pop(ctx);
+                                              context.push('/transaction-entry', extra: t);
+                                            },
+                                          ),
+                                          ListTile(
+                                            leading: const Icon(Icons.delete, color: Colors.redAccent),
+                                            title: const Text('Delete', style: TextStyle(color: Colors.white)),
+                                            onTap: () {
+                                              Navigator.pop(ctx);
+                                              showDialog(
+                                                context: context,
+                                                builder: (dialogCtx) => AlertDialog(
+                                                  backgroundColor: AppTheme.deepNavy,
+                                                  title: const Text('Confirm Deletion', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                  content: const Text(
+                                                    'Are you sure you want to permanently delete this transaction? This will instantly impact your Net Worth and AI Analysis parameters.', 
+                                                    style: TextStyle(color: Colors.white70, height: 1.4)
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () => Navigator.pop(dialogCtx),
+                                                      child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        ref.read(transactionNotifierProvider.notifier).deleteTransaction(t);
+                                                        Navigator.pop(dialogCtx);
+                                                      },
+                                                      child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           );
                         }),

@@ -110,7 +110,14 @@ class _TransactionEntryScreenState extends ConsumerState<TransactionEntryScreen>
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _transactionType = 'Income'),
+                    onTap: () {
+                      if (_transactionType != 'Income') {
+                        setState(() {
+                          _transactionType = 'Income';
+                          _selectedCategoryId = null;
+                        });
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
@@ -125,7 +132,14 @@ class _TransactionEntryScreenState extends ConsumerState<TransactionEntryScreen>
                 const SizedBox(width: 16),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _transactionType = 'Expense'),
+                    onTap: () {
+                      if (_transactionType != 'Expense') {
+                        setState(() {
+                          _transactionType = 'Expense';
+                          _selectedCategoryId = null;
+                        });
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
@@ -156,6 +170,11 @@ class _TransactionEntryScreenState extends ConsumerState<TransactionEntryScreen>
             accountsAsync.when(
               data: (accounts) {
                 if (accounts.isEmpty) return const Text('No accounts found. Create one first.', style: TextStyle(color: Colors.redAccent));
+                
+                if (_selectedAccountId != null && !accounts.any((a) => a.id == _selectedAccountId)) {
+                  _selectedAccountId = null;
+                }
+
                 return DropdownButtonFormField<String>(
                   value: _selectedAccountId,
                   decoration: InputDecoration(

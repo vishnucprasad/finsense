@@ -6,7 +6,7 @@ part of 'dashboard_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$financialTipHash() => r'7a4b1bb9d25b26916c3472eda4d9b7da07ded417';
+String _$financialTipHash() => r'd844a977dea4332c0acde46062e6745a0ee40b97';
 
 /// See also [FinancialTip].
 @ProviderFor(FinancialTip)

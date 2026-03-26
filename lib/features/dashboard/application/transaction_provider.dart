@@ -66,4 +66,38 @@ class TransactionNotifier extends _$TransactionNotifier {
       await ref.read(accountNotifierProvider.notifier).updateBalance(transaction.accountId, revertDelta);
     }
   }
+
+  Future<void> clearCategoryFromTransactions(String deletedCategoryId, String defaultCategoryId) async {
+    final currentList = state.valueOrNull ?? [];
+    bool changed = false;
+    final newList = currentList.map((t) {
+      if (t.categoryId == deletedCategoryId) {
+        changed = true;
+        return TransactionModel(
+          id: t.id,
+          accountId: t.accountId,
+          categoryId: defaultCategoryId,
+          amount: t.amount,
+          date: t.date,
+          note: t.note,
+          type: t.type,
+        );
+      }
+      return t;
+    }).toList();
+
+    if (changed) {
+      state = AsyncValue.data(newList);
+      await _saveTransactions(newList);
+    }
+  }
+
+  Future<void> clearAccountTransactions(String accountId) async {
+    final currentList = state.valueOrNull ?? [];
+    final newList = currentList.where((t) => t.accountId != accountId).toList();
+    if (newList.length != currentList.length) {
+      state = AsyncValue.data(newList);
+      await _saveTransactions(newList);
+    }
+  }
 }

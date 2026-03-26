@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/models/category_model.dart';
+import '../../dashboard/application/transaction_provider.dart';
 
 part 'category_provider.g.dart';
 
@@ -59,8 +60,15 @@ class CategoryNotifier extends _$CategoryNotifier {
 
   Future<void> deleteCategory(String id) async {
     final currentList = state.valueOrNull ?? [];
+    if (currentList.length <= 1) return;
+    
+    final categoryToDelete = currentList.firstWhere((c) => c.id == id, orElse: () => currentList.first);
+    final fallbackCategory = currentList.firstWhere((c) => c.id != id && c.type == categoryToDelete.type, orElse: () => currentList.firstWhere((c) => c.id != id));
+
     final newList = currentList.where((c) => c.id != id).toList();
     state = AsyncValue.data(newList);
     await _saveCategories(newList);
+    
+    await ref.read(transactionNotifierProvider.notifier).clearCategoryFromTransactions(id, fallbackCategory.id);
   }
 }

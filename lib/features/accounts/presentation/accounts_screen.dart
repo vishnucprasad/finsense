@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../application/account_provider.dart';
 import 'add_account_sheet.dart';
+import 'edit_account_sheet.dart';
 import '../../dashboard/presentation/widgets/global_drawer.dart';
 
 class AccountsScreen extends ConsumerWidget {
@@ -62,7 +63,64 @@ class AccountsScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(acc.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                        Icon(acc.type == 'Bank' ? Icons.account_balance : (acc.type == 'Card' ? Icons.credit_card : Icons.money), color: Colors.white70),
+                        Row(
+                          children: [
+                            Icon(acc.type == 'Bank' ? Icons.account_balance : (acc.type == 'Card' ? Icons.credit_card : Icons.money), color: Colors.white70),
+                            const SizedBox(width: 8),
+                            PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert, color: Colors.white70),
+                              color: AppTheme.deepNavy,
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: AppTheme.deepNavy,
+                                    builder: (context) => EditAccountSheet(account: acc),
+                                  );
+                                } else if (value == 'delete') {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      backgroundColor: AppTheme.deepNavy,
+                                      title: const Text('Delete Account', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                      content: const Text(
+                                        'Deleting this account will permanently remove its associated transactions and impact historical net worth mappings. Are you absolutely sure?',
+                                        style: TextStyle(color: Colors.white70, height: 1.4),
+                                      ),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+                                        TextButton(
+                                          onPressed: () {
+                                            ref.read(accountNotifierProvider.notifier).deleteAccount(acc.id);
+                                            Navigator.pop(ctx);
+                                          },
+                                          child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              },
+                              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                const PopupMenuItem<String>(
+                                  value: 'edit',
+                                  child: ListTile(
+                                    leading: Icon(Icons.edit, color: AppTheme.cyan),
+                                    title: Text('Edit Account', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ),
+                                const PopupMenuItem<String>(
+                                  value: 'delete',
+                                  child: ListTile(
+                                    leading: Icon(Icons.delete, color: Colors.redAccent),
+                                    title: Text('Delete Account', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),

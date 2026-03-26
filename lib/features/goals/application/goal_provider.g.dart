@@ -6,7 +6,7 @@ part of 'goal_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$goalNotifierHash() => r'16888ffb0a6ba640cdb23bcede05aa4af8c3ed22';
+String _$goalNotifierHash() => r'fbe31cce2e5f6bb10f04dce513f16776b7d358d9';
 
 /// See also [GoalNotifier].
 @ProviderFor(GoalNotifier)
