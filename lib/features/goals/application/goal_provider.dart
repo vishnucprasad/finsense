@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/models/goal_model.dart';
 import '../../ai_assistant/application/gemini_service.dart';
 
@@ -7,7 +8,7 @@ part 'goal_provider.g.dart';
 
 @riverpod
 class GoalNotifier extends _$GoalNotifier {
-  static const _prefsKey = 'goals_key';
+  static const _tableName = 'goals';
 
   @override
   FutureOr<List<GoalModel>> build() async {
@@ -15,15 +16,9 @@ class GoalNotifier extends _$GoalNotifier {
   }
 
   Future<List<GoalModel>> _loadGoals() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStringList = prefs.getStringList(_prefsKey) ?? [];
-    return jsonStringList.map((str) => GoalModel.fromJson(str)).toList();
-  }
-
-  Future<void> _saveGoals(List<GoalModel> goals) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStringList = goals.map((g) => g.toJson()).toList();
-    await prefs.setStringList(_prefsKey, jsonStringList);
+    final db = await AppDatabase.instance.database;
+    final maps = await db.query(_tableName);
+    return maps.map((map) => GoalModel.fromMap(map)).toList();
   }
 
   Future<void> checkAndCreateGoal(
@@ -56,13 +51,17 @@ class GoalNotifier extends _$GoalNotifier {
     final currentList = state.valueOrNull ?? [];
     final newList = [...currentList, newGoal];
     state = AsyncValue.data(newList);
-    await _saveGoals(newList);
+    
+    final db = await AppDatabase.instance.database;
+    await db.insert(_tableName, newGoal.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
   
   Future<void> deleteGoal(String id) async {
+    final db = await AppDatabase.instance.database;
+    await db.delete(_tableName, where: 'id = ?', whereArgs: [id]);
+
     final currentList = state.valueOrNull ?? [];
     final newList = currentList.where((g) => g.id != id).toList();
     state = AsyncValue.data(newList);
-    await _saveGoals(newList);
   }
 }

@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/models/category_model.dart';
 import '../../dashboard/application/transaction_provider.dart';
 
@@ -7,7 +8,7 @@ part 'category_provider.g.dart';
 
 @riverpod
 class CategoryNotifier extends _$CategoryNotifier {
-  static const _prefsKey = 'categories_key';
+  static const _tableName = 'categories';
 
   @override
   FutureOr<List<CategoryModel>> build() async {
@@ -15,16 +16,20 @@ class CategoryNotifier extends _$CategoryNotifier {
   }
 
   Future<List<CategoryModel>> _loadCategories() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStringList = prefs.getStringList(_prefsKey);
+    final db = await AppDatabase.instance.database;
+    final maps = await db.query(_tableName);
     
-    if (jsonStringList == null || jsonStringList.isEmpty) {
-      final defaults = _getDefaultCategories();
-      await _saveCategories(defaults);
-      return defaults;
+    if (maps.isEmpty) {
+      final defaultList = _getDefaultCategories();
+      final batch = db.batch();
+      for (final cat in defaultList) {
+        batch.insert(_tableName, cat.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      await batch.commit(noResult: true);
+      return defaultList;
     }
     
-    return jsonStringList.map((str) => CategoryModel.fromJson(str)).toList();
+    return maps.map((map) => CategoryModel.fromMap(map)).toList();
   }
 
   List<CategoryModel> _getDefaultCategories() {
@@ -38,37 +43,36 @@ class CategoryNotifier extends _$CategoryNotifier {
     ];
   }
 
-  Future<void> _saveCategories(List<CategoryModel> categories) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStringList = categories.map((c) => c.toJson()).toList();
-    await prefs.setStringList(_prefsKey, jsonStringList);
-  }
-
   Future<void> addCategory(CategoryModel category) async {
+    final db = await AppDatabase.instance.database;
+    await db.insert(_tableName, category.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+
     final currentList = state.valueOrNull ?? [];
     final newList = [...currentList, category];
     state = AsyncValue.data(newList);
-    await _saveCategories(newList);
   }
 
-  Future<void> editCategory(CategoryModel category) async {
+  Future<void> updateCategory(CategoryModel updatedCategory) async {
+    final db = await AppDatabase.instance.database;
+    await db.update(_tableName, updatedCategory.toMap(), where: 'id = ?', whereArgs: [updatedCategory.id]);
+
     final currentList = state.valueOrNull ?? [];
-    final newList = currentList.map((c) => c.id == category.id ? category : c).toList();
+    final newList = currentList.map((c) => c.id == updatedCategory.id ? updatedCategory : c).toList();
     state = AsyncValue.data(newList);
-    await _saveCategories(newList);
   }
 
   Future<void> deleteCategory(String id) async {
     final currentList = state.valueOrNull ?? [];
-    if (currentList.length <= 1) return;
-    
-    final categoryToDelete = currentList.firstWhere((c) => c.id == id, orElse: () => currentList.first);
-    final fallbackCategory = currentList.firstWhere((c) => c.id != id && c.type == categoryToDelete.type, orElse: () => currentList.firstWhere((c) => c.id != id));
+    final categoryToDelete = currentList.firstWhere((c) => c.id == id, orElse: () => CategoryModel(id: '', name: '', type: '', iconName: '', colorHex: ''));
+    if (categoryToDelete.id.isEmpty) return;
+
+    final db = await AppDatabase.instance.database;
+    await db.delete(_tableName, where: 'id = ?', whereArgs: [id]);
 
     final newList = currentList.where((c) => c.id != id).toList();
     state = AsyncValue.data(newList);
-    await _saveCategories(newList);
     
-    await ref.read(transactionNotifierProvider.notifier).clearCategoryFromTransactions(id, fallbackCategory.id);
+    final fallbackCat = newList.firstWhere((c) => c.type == categoryToDelete.type, orElse: () => newList.first);
+    await ref.read(transactionNotifierProvider.notifier).clearCategoryFromTransactions(id, fallbackCat.id);
   }
 }

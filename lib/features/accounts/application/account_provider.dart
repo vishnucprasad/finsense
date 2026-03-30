@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/models/account_model.dart';
 import '../../dashboard/application/transaction_provider.dart';
 
@@ -7,7 +8,7 @@ part 'account_provider.g.dart';
 
 @riverpod
 class AccountNotifier extends _$AccountNotifier {
-  static const _prefsKey = 'accounts_key';
+  static const _tableName = 'accounts';
 
   @override
   FutureOr<List<AccountModel>> build() async {
@@ -15,49 +16,50 @@ class AccountNotifier extends _$AccountNotifier {
   }
 
   Future<List<AccountModel>> _loadAccounts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStringList = prefs.getStringList(_prefsKey) ?? [];
-    return jsonStringList.map((str) => AccountModel.fromJson(str)).toList();
-  }
-
-  Future<void> _saveAccounts(List<AccountModel> accounts) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStringList = accounts.map((a) => a.toJson()).toList();
-    await prefs.setStringList(_prefsKey, jsonStringList);
+    final db = await AppDatabase.instance.database;
+    final maps = await db.query(_tableName);
+    return maps.map((map) => AccountModel.fromMap(map)).toList();
   }
 
   Future<void> addAccount(AccountModel account) async {
+    final db = await AppDatabase.instance.database;
+    await db.insert(_tableName, account.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    
     final currentList = state.valueOrNull ?? [];
-    final newList = [...currentList, account];
-    state = AsyncValue.data(newList);
-    await _saveAccounts(newList);
+    state = AsyncValue.data([...currentList, account]);
   }
 
   Future<void> updateBalance(String id, double delta) async {
+    final db = await AppDatabase.instance.database;
     final currentList = state.valueOrNull ?? [];
     final newList = currentList.map((a) {
       if (a.id == id) {
-        return a.copyWith(balance: a.balance + delta);
+        final updatedAccount = a.copyWith(balance: a.balance + delta);
+        db.update(_tableName, updatedAccount.toMap(), where: 'id = ?', whereArgs: [id]);
+        return updatedAccount;
       }
       return a;
     }).toList();
     
     state = AsyncValue.data(newList);
-    await _saveAccounts(newList);
   }
 
   Future<void> updateAccount(AccountModel updatedAccount) async {
+    final db = await AppDatabase.instance.database;
+    await db.update(_tableName, updatedAccount.toMap(), where: 'id = ?', whereArgs: [updatedAccount.id]);
+
     final currentList = state.valueOrNull ?? [];
     final newList = currentList.map((a) => a.id == updatedAccount.id ? updatedAccount : a).toList();
     state = AsyncValue.data(newList);
-    await _saveAccounts(newList);
   }
 
   Future<void> deleteAccount(String id) async {
+    final db = await AppDatabase.instance.database;
+    await db.delete(_tableName, where: 'id = ?', whereArgs: [id]);
+
     final currentList = state.valueOrNull ?? [];
     final newList = currentList.where((a) => a.id != id).toList();
     state = AsyncValue.data(newList);
-    await _saveAccounts(newList);
     
     // Purge corresponding transactions universally
     await ref.read(transactionNotifierProvider.notifier).clearAccountTransactions(id);

@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/models/transaction_model.dart';
 import '../../accounts/application/account_provider.dart';
 
@@ -7,7 +8,7 @@ part 'transaction_provider.g.dart';
 
 @riverpod
 class TransactionNotifier extends _$TransactionNotifier {
-  static const _prefsKey = 'transactions_key';
+  static const _tableName = 'transactions';
 
   @override
   FutureOr<List<TransactionModel>> build() async {
@@ -15,22 +16,18 @@ class TransactionNotifier extends _$TransactionNotifier {
   }
 
   Future<List<TransactionModel>> _loadTransactions() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStringList = prefs.getStringList(_prefsKey) ?? [];
-    return jsonStringList.map((str) => TransactionModel.fromJson(str)).toList();
-  }
-
-  Future<void> _saveTransactions(List<TransactionModel> transactions) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStringList = transactions.map((t) => t.toJson()).toList();
-    await prefs.setStringList(_prefsKey, jsonStringList);
+    final db = await AppDatabase.instance.database;
+    final maps = await db.query(_tableName);
+    return maps.map((map) => TransactionModel.fromMap(map)).toList();
   }
 
   Future<void> addTransaction(TransactionModel transaction) async {
+    final db = await AppDatabase.instance.database;
+    await db.insert(_tableName, transaction.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+
     final currentList = state.valueOrNull ?? [];
     final newList = [...currentList, transaction];
     state = AsyncValue.data(newList);
-    await _saveTransactions(newList);
     
     if (transaction.accountId.isNotEmpty) {
       final delta = transaction.type == 'Expense' ? -transaction.amount : transaction.amount;
@@ -39,10 +36,12 @@ class TransactionNotifier extends _$TransactionNotifier {
   }
 
   Future<void> editTransaction(TransactionModel newTx, TransactionModel oldTx) async {
+    final db = await AppDatabase.instance.database;
+    await db.update(_tableName, newTx.toMap(), where: 'id = ?', whereArgs: [newTx.id]);
+
     final currentList = state.valueOrNull ?? [];
     final newList = currentList.map((t) => t.id == newTx.id ? newTx : t).toList();
     state = AsyncValue.data(newList);
-    await _saveTransactions(newList);
 
     if (oldTx.accountId.isNotEmpty) {
       final revertDelta = oldTx.type == 'Expense' ? oldTx.amount : -oldTx.amount;
@@ -56,10 +55,12 @@ class TransactionNotifier extends _$TransactionNotifier {
   }
 
   Future<void> deleteTransaction(TransactionModel transaction) async {
+    final db = await AppDatabase.instance.database;
+    await db.delete(_tableName, where: 'id = ?', whereArgs: [transaction.id]);
+
     final currentList = state.valueOrNull ?? [];
     final newList = currentList.where((t) => t.id != transaction.id).toList();
     state = AsyncValue.data(newList);
-    await _saveTransactions(newList);
     
     if (transaction.accountId.isNotEmpty) {
       final revertDelta = transaction.type == 'Expense' ? transaction.amount : -transaction.amount;
@@ -68,36 +69,37 @@ class TransactionNotifier extends _$TransactionNotifier {
   }
 
   Future<void> clearCategoryFromTransactions(String deletedCategoryId, String defaultCategoryId) async {
+    final db = await AppDatabase.instance.database;
+    await db.update(
+      _tableName, 
+      {'categoryId': defaultCategoryId}, 
+      where: 'categoryId = ?', 
+      whereArgs: [deletedCategoryId]
+    );
+
     final currentList = state.valueOrNull ?? [];
     bool changed = false;
     final newList = currentList.map((t) {
       if (t.categoryId == deletedCategoryId) {
         changed = true;
-        return TransactionModel(
-          id: t.id,
-          accountId: t.accountId,
-          categoryId: defaultCategoryId,
-          amount: t.amount,
-          date: t.date,
-          note: t.note,
-          type: t.type,
-        );
+        return t.copyWith(categoryId: defaultCategoryId);
       }
       return t;
     }).toList();
 
     if (changed) {
       state = AsyncValue.data(newList);
-      await _saveTransactions(newList);
     }
   }
 
   Future<void> clearAccountTransactions(String accountId) async {
+    final db = await AppDatabase.instance.database;
+    await db.delete(_tableName, where: 'accountId = ?', whereArgs: [accountId]);
+
     final currentList = state.valueOrNull ?? [];
     final newList = currentList.where((t) => t.accountId != accountId).toList();
     if (newList.length != currentList.length) {
       state = AsyncValue.data(newList);
-      await _saveTransactions(newList);
     }
   }
 }

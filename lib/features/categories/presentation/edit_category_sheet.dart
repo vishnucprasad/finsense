@@ -79,7 +79,7 @@ class _EditCategorySheetState extends ConsumerState<EditCategorySheet> {
       colorHex: _selectedColor,
     );
 
-    ref.read(categoryNotifierProvider.notifier).editCategory(updatedCategory);
+    ref.read(categoryNotifierProvider.notifier).updateCategory(updatedCategory);
     Navigator.pop(context);
   }
 
