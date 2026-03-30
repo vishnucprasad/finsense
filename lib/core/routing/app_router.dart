@@ -1,18 +1,18 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
-import 'main_layout.dart';
-import '../../features/dashboard/presentation/dashboard_screen.dart';
-import '../../features/dashboard/presentation/monthly_breakdown_screen.dart';
-import '../../features/dashboard/presentation/transaction_entry_screen.dart';
-import '../../features/accounts/presentation/accounts_screen.dart';
-import '../../features/categories/presentation/category_manager_screen.dart';
-import '../../features/goals/presentation/goal_screen.dart';
-import '../../features/goals/presentation/set_goal_screen.dart';
-import '../../../core/models/transaction_model.dart';
-import '../../features/ai_assistant/presentation/chat_screen.dart';
-import '../../features/ai_assistant/presentation/ai_summary_screen.dart';
-import '../../features/settings/presentation/settings_screen.dart';
-import '../../features/transactions/presentation/all_transactions_screen.dart';
+import 'package:finsense/core/routing/main_layout.dart';
+import 'package:finsense/features/dashboard/views/dashboard_screen.dart';
+import 'package:finsense/features/dashboard/views/monthly_breakdown_screen.dart';
+import 'package:finsense/features/transactions/views/transaction_entry_screen.dart';
+import 'package:finsense/features/accounts/views/accounts_screen.dart';
+import 'package:finsense/features/categories/views/category_manager_screen.dart';
+import 'package:finsense/features/goals/views/goal_screen.dart';
+import 'package:finsense/features/goals/views/set_goal_screen.dart';
+import 'package:finsense/features/transactions/models/transaction_model.dart';
+import 'package:finsense/features/ai_insights/views/chat_screen.dart';
+import 'package:finsense/features/ai_insights/views/ai_summary_screen.dart';
+import 'package:finsense/features/settings/views/settings_screen.dart';
+import 'package:finsense/features/transactions/views/all_transactions_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -20,10 +20,7 @@ final goRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/home',
   routes: [
-    GoRoute(
-      path: '/goals',
-      builder: (context, state) => const GoalScreen(),
-    ),
+    GoRoute(path: '/goals', builder: (context, state) => const GoalScreen()),
     GoRoute(
       path: '/accounts',
       builder: (context, state) => const AccountsScreen(),

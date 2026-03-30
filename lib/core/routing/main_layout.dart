@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/dashboard/presentation/widgets/global_drawer.dart';
+import 'package:finsense/shared/widgets/global_drawer.dart';
 
 class MainLayout extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -22,7 +22,10 @@ class MainLayout extends StatelessWidget {
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.receipt_long), label: 'Transactions'),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long),
+            label: 'Transactions',
+          ),
           NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],

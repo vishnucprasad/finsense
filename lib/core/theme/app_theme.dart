@@ -25,11 +25,11 @@ class GlassmorphismContainer extends StatelessWidget {
   final double borderRadius;
   final double width;
   final double height;
-  
+
   const GlassmorphismContainer({
-    super.key, 
-    required this.child, 
-    this.padding, 
+    super.key,
+    required this.child,
+    this.padding,
     this.borderRadius = 16.0,
     this.width = double.infinity,
     this.height = double.infinity,
